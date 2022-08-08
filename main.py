@@ -18,6 +18,10 @@ from pose_estimator import PoseEstimator
 import math
 import shutil
 import os 
+import datetime
+import signal
+from dateutil.tz import tzlocal
+from pathlib import Path
 
 print(__doc__)
 print("OpenCV version: {}".format(cv2.__version__))
@@ -28,6 +32,10 @@ parser.add_argument("--video", type=str, default=None,
                     help="Video file to be processed.")
 parser.add_argument("--cam", type=int, default=None,
                     help="The webcam index.")
+parser.add_argument("--outdir", type=str, default=None,
+                    help="The output directory - not a path to a specific file.")
+parser.add_argument("--preview", action="store_true", default=False,
+                    help="Whether to show a preview")
 args = parser.parse_args()
 
 def normalize_vec3(vec):
@@ -42,7 +50,18 @@ def format_number(num):
     num = num / 1000
     return num
 
+class SIGINT_handler():
+    def __init__(self):
+        self.SIGINT = False
+
+    def signal_handler(self, signal, frame):
+        print('Caught sigint, exiting')
+        self.SIGINT = True
+
 if __name__ == '__main__':
+    handler = SIGINT_handler()
+    signal.signal(signal.SIGINT, handler.signal_handler)
+
     # Before estimation started, there are some startup works to do.
 
     # 1. Setup the video source from webcam or video file.
@@ -50,6 +69,19 @@ if __name__ == '__main__':
     if video_src is None:
         print("Video source not assigned, default webcam will be used.")
         video_src = 0
+
+    out_dir = args.outdir
+    if out_dir is None:
+        out_dir = os.path.join(Path.cwd(), "video")
+        if not os.path.isdir(out_dir):
+            os.mkdir(out_dir)
+
+    now = datetime.datetime.now(tzlocal())
+    timestamp_str = now.strftime("%Y-%m-%d_%H-%M") 
+    out_video_path = os.path.join(out_dir, timestamp_str + ".mp4")
+    print(out_video_path)
+    # with open(os.path.join(out_dir, "test.txt"), 'w') as f:
+    #     f.write("hello")
 
     cap = cv2.VideoCapture(video_src)
 
@@ -66,21 +98,22 @@ if __name__ == '__main__':
     # 4. Measure the performance with a tick meter.
     tm = cv2.TickMeter()
 
-    out_video_path = "/mnt/c/Users/ian/Documents/ergonomics/7_17_22/test/temp.mp4"
+    # out_video_path = "/mnt/c/Users/ian/Documents/ergonomics/7_17_22/test/temp.mp4"
 
-    video_out_dir = os.path.splitext(video_src)[0] + "_frames"
-    print(video_out_dir)
-    try:
-        shutil.rmtree(video_out_dir)
-    except OSError as e:
-        pass
-    os.mkdir(video_out_dir)
+    # video_out_dir = os.path.splitext(video_src)[0] + "_frames"
+    # print(video_out_dir)
+    # try:
+    #     shutil.rmtree(video_out_dir)
+    # except OSError as e:
+    #     pass
+    # os.mkdir(video_out_dir)
 
     fps = cap.get(cv2.CAP_PROP_FPS)
     print("fps=%d width=%f height=%f" % (fps, width, height))
     out_size = (int(width), int(height))
     # out_video = cv2.VideoWriter(out_video_path, cv2.VideoWriter_fourcc(*"MJPG"), int(fps), out_size)
-    out_video = cv2.VideoWriter(out_video_path, cv2.VideoWriter_fourcc(*"XVID"), int(fps), out_size)
+    out_video = cv2.VideoWriter(out_video_path, cv2.VideoWriter_fourcc(*"mp4v"), int(fps), out_size)
+    # out_video = cv2.VideoWriter(out_video_path, -1, int(fps), out_size)
 
     frame_idx = 0
 
@@ -88,9 +121,9 @@ if __name__ == '__main__':
     # font_color = (57, 143, 247)
 
     # Now, let the frames flow.
-    while True:
-        # if frame_idx == 100:
-        #     break
+    while not handler.SIGINT:
+        if frame_idx == 100:
+            break
 
         # Read a frame.
         frame_got, frame = cap.read()
@@ -149,11 +182,10 @@ if __name__ == '__main__':
             # Do you want to see the facebox?
             # mark_detector.draw_box(frame, [facebox])
 
-        # Show preview.
-        # cv2.imshow("Preview", frame)
-        # cv2.imwrite("/mnt/c/Users/ian/Documents/ergonomics/7_17_22/test/frame.png", frame)
-        out_frame_path = os.path.join(video_out_dir, "frame_%d.png" % frame_idx) 
-        cv2.imwrite(out_frame_path, frame)
+        if args.preview:
+            cv2.imshow("Preview", frame)
+        # out_frame_path = os.path.join(video_out_dir, "frame_%d.png" % frame_idx) 
+        # cv2.imwrite(out_frame_path, frame)
         out_video.write(cv2.resize(frame, out_size))
         if cv2.waitKey(1) == 27:
             break
