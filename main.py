@@ -15,6 +15,10 @@ import cv2
 from mark_detector import MarkDetector
 from pose_estimator import PoseEstimator
 
+import math
+import shutil
+import os 
+
 print(__doc__)
 print("OpenCV version: {}".format(cv2.__version__))
 
@@ -26,6 +30,17 @@ parser.add_argument("--cam", type=int, default=None,
                     help="The webcam index.")
 args = parser.parse_args()
 
+def normalize_vec3(vec):
+    mag = math.sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2])
+    vec[0] = vec[0] / mag
+    vec[1] = vec[1] / mag
+    vec[2] = vec[2] / mag
+
+def format_number(num):
+    num = num * 1000
+    num = round(num)
+    num = num / 1000
+    return num
 
 if __name__ == '__main__':
     # Before estimation started, there are some startup works to do.
@@ -51,7 +66,16 @@ if __name__ == '__main__':
     # 4. Measure the performance with a tick meter.
     tm = cv2.TickMeter()
 
-    out_video_path = "/mnt/c/Users/ian/Documents/ergonomics/7_17_22/test/test.mp4"
+    out_video_path = "/mnt/c/Users/ian/Documents/ergonomics/7_17_22/test/temp.mp4"
+
+    video_out_dir = os.path.splitext(video_src)[0] + "_frames"
+    print(video_out_dir)
+    try:
+        shutil.rmtree(video_out_dir)
+    except OSError as e:
+        pass
+    os.mkdir(video_out_dir)
+
     fps = cap.get(cv2.CAP_PROP_FPS)
     print("fps=%d width=%f height=%f" % (fps, width, height))
     out_size = (int(width), int(height))
@@ -60,10 +84,13 @@ if __name__ == '__main__':
 
     frame_idx = 0
 
+    font_color = (0, 0, 255)
+    # font_color = (57, 143, 247)
+
     # Now, let the frames flow.
     while True:
-        if frame_idx == 100:
-            break
+        # if frame_idx == 100:
+        #     break
 
         # Read a frame.
         frame_got, frame = cap.read()
@@ -106,7 +133,15 @@ if __name__ == '__main__':
                 frame, pose[0], pose[1], color=(0, 255, 0))
 
             # Do you want to see the head axes?
-            # pose_estimator.draw_axes(frame, pose[0], pose[1])
+            # I dont know why they're stored this way
+            # They're also not normalized, so we'll have to fix that
+            axis = [pose[0][0][0], pose[0][1][0], pose[0][2][0]]
+            normalize_vec3(axis)
+            # annotation_str = "axis=" + str(format_number(axis[0])) + ",\n" + str(format_number(axis[1])) + ",\n" + str(format_number(axis[2]))
+            annotation_str = "axis=%f,%f,%f" % (format_number(axis[0]), format_number(axis[1]), format_number(axis[2]))
+            pose_estimator.draw_axes(frame, pose[0], pose[1])
+
+            cv2.putText(frame, annotation_str, (50, int(height)-100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
 
             # Do you want to see the marks?
             # mark_detector.draw_marks(frame, marks, color=(0, 255, 0))
@@ -117,6 +152,8 @@ if __name__ == '__main__':
         # Show preview.
         # cv2.imshow("Preview", frame)
         # cv2.imwrite("/mnt/c/Users/ian/Documents/ergonomics/7_17_22/test/frame.png", frame)
+        out_frame_path = os.path.join(video_out_dir, "frame_%d.png" % frame_idx) 
+        cv2.imwrite(out_frame_path, frame)
         out_video.write(cv2.resize(frame, out_size))
         if cv2.waitKey(1) == 27:
             break
