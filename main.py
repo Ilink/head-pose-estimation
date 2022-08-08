@@ -51,8 +51,19 @@ if __name__ == '__main__':
     # 4. Measure the performance with a tick meter.
     tm = cv2.TickMeter()
 
+    out_video_path = "/mnt/c/Users/ian/Documents/ergonomics/7_17_22/test/test.mp4"
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    print("fps=%d width=%f height=%f" % (fps, width, height))
+    out_size = (int(width), int(height))
+    # out_video = cv2.VideoWriter(out_video_path, cv2.VideoWriter_fourcc(*"MJPG"), int(fps), out_size)
+    out_video = cv2.VideoWriter(out_video_path, cv2.VideoWriter_fourcc(*"XVID"), int(fps), out_size)
+
+    frame_idx = 0
+
     # Now, let the frames flow.
     while True:
+        if frame_idx == 100:
+            break
 
         # Read a frame.
         frame_got, frame = cap.read()
@@ -104,6 +115,13 @@ if __name__ == '__main__':
             # mark_detector.draw_box(frame, [facebox])
 
         # Show preview.
-        cv2.imshow("Preview", frame)
+        # cv2.imshow("Preview", frame)
+        # cv2.imwrite("/mnt/c/Users/ian/Documents/ergonomics/7_17_22/test/frame.png", frame)
+        out_video.write(cv2.resize(frame, out_size))
         if cv2.waitKey(1) == 27:
             break
+
+        frame_idx += 1
+
+    out_video.release()
+    cap.release()
