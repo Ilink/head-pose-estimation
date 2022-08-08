@@ -35,7 +35,9 @@ parser.add_argument("--cam", type=int, default=None,
 parser.add_argument("--outdir", type=str, default=None,
                     help="The output directory - not a path to a specific file.")
 parser.add_argument("--preview", action="store_true", default=False,
-                    help="Whether to show a preview")
+                    help="Whether to show a preview. Implies --sample-all")
+parser.add_argument("--sample-all", action="store_true", default=False,
+                    help="Whether to sample all frames")
 args = parser.parse_args()
 
 def normalize_vec3(vec):
@@ -116,6 +118,11 @@ if __name__ == '__main__':
     # out_video = cv2.VideoWriter(out_video_path, -1, int(fps), out_size)
 
     frame_idx = 0
+    skip_frame_count = 0
+    num_skip_frames = 0
+    if not (args.preview or args.sample_all):
+        # My webcam is 30 fps, so this is 2 samples per second
+        num_skip_frames = 15
 
     font_color = (0, 0, 255)
     # font_color = (57, 143, 247)
@@ -129,6 +136,12 @@ if __name__ == '__main__':
         frame_got, frame = cap.read()
         if frame_got is False:
             break
+
+        if skip_frame_count < num_skip_frames:
+            skip_frame_count += 1
+            continue
+        else:
+            skip_frame_count = 0
 
         # If the frame comes from webcam, flip it so it looks like a mirror.
         if video_src == 0:
