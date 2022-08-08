@@ -23,6 +23,8 @@ import signal
 from dateutil.tz import tzlocal
 from pathlib import Path
 import json
+from playsound import playsound
+# import simpleaudio
 
 print(__doc__)
 print("OpenCV version: {}".format(cv2.__version__))
@@ -61,6 +63,8 @@ class SIGINT_handler():
         print('Caught sigint, exiting')
         self.SIGINT = True
 
+# beep = simpleaudio.WaveObject.from_wave_file("path/to/file.wav")
+
 if __name__ == '__main__':
     handler = SIGINT_handler()
     signal.signal(signal.SIGINT, handler.signal_handler)
@@ -80,7 +84,7 @@ if __name__ == '__main__':
             os.mkdir(out_dir)
 
     now = datetime.datetime.now(tzlocal())
-    timestamp_str = now.strftime("%Y-%m-%d_%H-%M") 
+    timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S") 
     out_video_path = os.path.join(out_dir, timestamp_str + ".mp4")
     print(out_video_path)
 
@@ -196,6 +200,9 @@ if __name__ == '__main__':
 
             log["axis"] = axis
             logs.append(log)
+
+            playsound(os.path.join(Path.cwd(), "assets", "beep2.wav"))
+
             # Do you want to see the marks?
             # mark_detector.draw_marks(frame, marks, color=(0, 255, 0))
 
