@@ -83,8 +83,9 @@ if __name__ == '__main__':
     timestamp_str = now.strftime("%Y-%m-%d_%H-%M") 
     out_video_path = os.path.join(out_dir, timestamp_str + ".mp4")
     print(out_video_path)
-    # with open(os.path.join(out_dir, "test.txt"), 'w') as f:
-    #     f.write("hello")
+
+    frames_out_dir = os.path.join(out_dir, timestamp_str + "_frames")
+    os.mkdir(frames_out_dir)
 
     cap = cv2.VideoCapture(video_src)
 
@@ -163,9 +164,9 @@ if __name__ == '__main__':
             face_img = frame[y1: y2, x1: x2]
 
             # Run the detection.
-            tm.start()
+            # tm.start()
             marks = mark_detector.detect_marks(face_img)
-            tm.stop()
+            # tm.stop()
 
             # Convert the locations from local face area to the global image.
             marks *= (x2 - x1)
@@ -188,10 +189,10 @@ if __name__ == '__main__':
             axis = [pose[0][0][0], pose[0][1][0], pose[0][2][0]]
             normalize_vec3(axis)
             # annotation_str = "axis=" + str(format_number(axis[0])) + ",\n" + str(format_number(axis[1])) + ",\n" + str(format_number(axis[2]))
-            annotation_str = "axis=%f,%f,%f" % (format_number(axis[0]), format_number(axis[1]), format_number(axis[2]))
+            annotation_str = "axis=%f, %f, %f" % (format_number(axis[0]), format_number(axis[1]), format_number(axis[2]))
             pose_estimator.draw_axes(frame, pose[0], pose[1])
 
-            cv2.putText(frame, annotation_str, (50, int(height)-100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
+            cv2.putText(frame, annotation_str, (50, int(height)-20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
 
             log["axis"] = axis
             logs.append(log)
@@ -203,8 +204,8 @@ if __name__ == '__main__':
 
         if args.preview:
             cv2.imshow("Preview", frame)
-        # out_frame_path = os.path.join(video_out_dir, "frame_%d.png" % frame_idx) 
-        # cv2.imwrite(out_frame_path, frame)
+        out_frame_path = os.path.join(frames_out_dir, "frame_%d.png" % frame_idx) 
+        cv2.imwrite(out_frame_path, frame)
         out_video.write(cv2.resize(frame, out_size))
 
         frame_idx += 1
