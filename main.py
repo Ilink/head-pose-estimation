@@ -22,6 +22,7 @@ import datetime
 import signal
 from dateutil.tz import tzlocal
 from pathlib import Path
+import json
 
 print(__doc__)
 print("OpenCV version: {}".format(cv2.__version__))
@@ -127,8 +128,11 @@ if __name__ == '__main__':
     font_color = (0, 0, 255)
     # font_color = (57, 143, 247)
 
+    logs = []
+
     # Now, let the frames flow.
     while not handler.SIGINT:
+        log = {}
         if frame_idx == 100:
             break
 
@@ -189,6 +193,8 @@ if __name__ == '__main__':
 
             cv2.putText(frame, annotation_str, (50, int(height)-100), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
 
+            log["axis"] = axis
+            logs.append(log)
             # Do you want to see the marks?
             # mark_detector.draw_marks(frame, marks, color=(0, 255, 0))
 
@@ -200,10 +206,11 @@ if __name__ == '__main__':
         # out_frame_path = os.path.join(video_out_dir, "frame_%d.png" % frame_idx) 
         # cv2.imwrite(out_frame_path, frame)
         out_video.write(cv2.resize(frame, out_size))
-        if cv2.waitKey(1) == 27:
-            break
 
         frame_idx += 1
 
     out_video.release()
     cap.release()
+    out_log_path = os.path.join(out_dir, timestamp_str + ".json")
+    with open(out_log_path, 'w', encoding='utf-8') as f:
+        json.dump(logs, f, ensure_ascii=False, indent=4)
