@@ -90,6 +90,10 @@ class AxisTracker():
         if abs(axis[0]) > 0.04:
             self.time_in_bad_state += seconds_since_last_frame
         else:
+            # One could still be in a bad posture for long periods of time
+            # with occasional resets to a good posture. An extreme
+            # example would be 99% of the interval in a bad posture,
+            # then 1% in a good posture.
             self.time_in_bad_state -= seconds_since_last_frame
             self.time_in_bad_state = max(0, self.time_in_bad_state)
 
