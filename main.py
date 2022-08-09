@@ -90,8 +90,8 @@ class AxisTracker():
         if abs(axis[0]) > 0.04:
             self.time_in_bad_state += seconds_since_last_frame
         else:
-            # TODO dont reset after only one sample?
-            self.time_in_bad_state = 0.0
+            self.time_in_bad_state -= seconds_since_last_frame
+            self.time_in_bad_state = max(0, self.time_in_bad_state)
 
         if self.time_in_bad_state >= self.num_seconds_warn:
             log["in_bad_state"] = True
