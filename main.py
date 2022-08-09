@@ -77,19 +77,21 @@ if __name__ == '__main__':
         print("Video source not assigned, default webcam will be used.")
         video_src = 0
 
-    out_dir = args.outdir
-    if out_dir is None:
-        out_dir = os.path.join(Path.cwd(), "video")
-        if not os.path.isdir(out_dir):
-            os.mkdir(out_dir)
+    out_base_dir = args.outdir
+    if out_base_dir is None:
+        out_base_dir = os.path.join(Path.cwd(), "video")
+        if not os.path.isdir(out_base_dir):
+            os.mkdir(out_base_dir)
 
     now = datetime.datetime.now(tzlocal())
     timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S") 
+    out_dir = os.path.join(out_base_dir, timestamp_str)
+    os.mkdir(out_dir)
     out_video_path = os.path.join(out_dir, timestamp_str + ".mp4")
     print(out_video_path)
 
-    frames_out_dir = os.path.join(out_dir, timestamp_str + "_frames")
-    os.mkdir(frames_out_dir)
+    frames_out_base_dir = os.path.join(out_dir, "frames")
+    os.mkdir(frames_out_base_dir)
 
     cap = cv2.VideoCapture(video_src)
 
@@ -108,13 +110,13 @@ if __name__ == '__main__':
 
     # out_video_path = "/mnt/c/Users/ian/Documents/ergonomics/7_17_22/test/temp.mp4"
 
-    # video_out_dir = os.path.splitext(video_src)[0] + "_frames"
-    # print(video_out_dir)
+    # video_out_base_dir = os.path.splitext(video_src)[0] + "_frames"
+    # print(video_out_base_dir)
     # try:
-    #     shutil.rmtree(video_out_dir)
+    #     shutil.rmtree(video_out_base_dir)
     # except OSError as e:
     #     pass
-    # os.mkdir(video_out_dir)
+    # os.mkdir(video_out_base_dir)
 
     fps = cap.get(cv2.CAP_PROP_FPS)
     print("fps=%d width=%f height=%f" % (fps, width, height))
@@ -213,7 +215,7 @@ if __name__ == '__main__':
             cv2.imshow("Preview", frame)
             cv2.waitKey(1)
 
-        out_frame_path = os.path.join(frames_out_dir, "frame_%d.png" % frame_idx) 
+        out_frame_path = os.path.join(frames_out_base_dir, "frame_%d.png" % frame_idx) 
         cv2.imwrite(out_frame_path, frame)
         out_video.write(cv2.resize(frame, out_size))
 
