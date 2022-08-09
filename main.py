@@ -105,25 +105,10 @@ if __name__ == '__main__':
     # 3. Introduce a mark detector to detect landmarks.
     mark_detector = MarkDetector()
 
-    # 4. Measure the performance with a tick meter.
-    # tm = cv2.TickMeter()
-
-    # out_video_path = "/mnt/c/Users/ian/Documents/ergonomics/7_17_22/test/temp.mp4"
-
-    # video_out_base_dir = os.path.splitext(video_src)[0] + "_frames"
-    # print(video_out_base_dir)
-    # try:
-    #     shutil.rmtree(video_out_base_dir)
-    # except OSError as e:
-    #     pass
-    # os.mkdir(video_out_base_dir)
-
     fps = cap.get(cv2.CAP_PROP_FPS)
     print("fps=%d width=%f height=%f" % (fps, width, height))
     out_size = (int(width), int(height))
-    # out_video = cv2.VideoWriter(out_video_path, cv2.VideoWriter_fourcc(*"MJPG"), int(fps), out_size)
     out_video = cv2.VideoWriter(out_video_path, cv2.VideoWriter_fourcc(*"mp4v"), int(fps), out_size)
-    # out_video = cv2.VideoWriter(out_video_path, -1, int(fps), out_size)
 
     frame_idx = 0
     skip_frame_count = 0
@@ -194,7 +179,6 @@ if __name__ == '__main__':
             # They're also not normalized, so we'll have to fix that
             axis = [pose[0][0][0], pose[0][1][0], pose[0][2][0]]
             normalize_vec3(axis)
-            # annotation_str = "axis=" + str(format_number(axis[0])) + ",\n" + str(format_number(axis[1])) + ",\n" + str(format_number(axis[2]))
             annotation_str = "axis=%f, %f, %f" % (format_number(axis[0]), format_number(axis[1]), format_number(axis[2]))
             pose_estimator.draw_axes(frame, pose[0], pose[1])
 
