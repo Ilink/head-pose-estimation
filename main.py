@@ -23,6 +23,7 @@ import signal
 from dateutil.tz import tzlocal
 from pathlib import Path
 import json
+import time
 from playsound import playsound
 
 print(__doc__)
@@ -77,14 +78,15 @@ class PlaySoundInterval:
             self.time_since_last = 0.0
 
 class AxisTracker():
-    def __init__(self, num_seconds_warn):
+    def __init__(self, num_seconds_warn, beep_interval_seconds):
         self.num_seconds_warn = num_seconds_warn
         self.in_bad_state = False
         self.time_in_bad_state = 0.0
-        self.beeper = PlaySoundInterval(2.0, os.path.join(Path.cwd(), "assets", "beep2.wav"))
+        self.beeper = PlaySoundInterval(beep_interval_seconds, os.path.join(Path.cwd(), "assets", "beep2.wav"))
 
     def update(self, axis, seconds_since_last_frame, frame_idx, log):
         self.beeper.update(seconds_since_last_frame)
+        log["time_in_bad_state"] = self.time_in_bad_state
         if abs(axis[0]) > 0.04:
             self.time_in_bad_state += seconds_since_last_frame
         else:
@@ -98,7 +100,7 @@ class AxisTracker():
 
 if __name__ == '__main__':
     handler = SIGINT_handler()
-    axis_tracker = AxisTracker(1)
+    axis_tracker = AxisTracker(10, 2)
     signal.signal(signal.SIGINT, handler.signal_handler)
 
     # Before estimation started, there are some startup works to do.
@@ -157,6 +159,8 @@ if __name__ == '__main__':
     # font_color = (57, 143, 247)
 
     logs = []
+
+    prev_time = time.perf_counter()
 
     # Now, let the frames flow.
     while not handler.SIGINT:
@@ -222,7 +226,10 @@ if __name__ == '__main__':
             logs.append(log)
 
             # def update(self, axis, seconds_since_last_frame, frame_idx, log):
-            axis_tracker.update(axis, seconds_per_sample, frame_idx, log)
+            now = time.perf_counter()
+            dt = now - prev_time
+            prev_time = now
+            axis_tracker.update(axis, dt, frame_idx, log)
 
             # playsound(os.path.join(Path.cwd(), "assets", "beep2.wav"))
 
