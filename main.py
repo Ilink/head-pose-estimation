@@ -24,7 +24,6 @@ from dateutil.tz import tzlocal
 from pathlib import Path
 import json
 from playsound import playsound
-# import simpleaudio
 
 print(__doc__)
 print("OpenCV version: {}".format(cv2.__version__))
@@ -63,10 +62,27 @@ class SIGINT_handler():
         print('Caught sigint, exiting')
         self.SIGINT = True
 
-# beep = simpleaudio.WaveObject.from_wave_file("path/to/file.wav")
+class AxisTracker():
+    def __init__(self, num_seconds_warn):
+        self.num_seconds_warn = num_seconds_warn
+        self.in_bad_state = False
+        self.time_in_bad_state = 0.0
+
+    def update(self, axis, seconds_since_last_frame, frame_idx, log):
+        if abs(axis[0]) > 0.04:
+            self.time_in_bad_state += seconds_since_last_frame
+        else:
+            # TODO dont reset after only one sample?
+            self.time_in_bad_state = 0.0
+
+        if self.time_in_bad_state >= self.num_seconds_warn:
+            log["in_bad_state"] = True
+            log["time_in_bad_state"] = self.time_in_bad_state 
+            playsound(os.path.join(Path.cwd(), "assets", "beep2.wav"))
 
 if __name__ == '__main__':
     handler = SIGINT_handler()
+    axis_tracker = AxisTracker(1)
     signal.signal(signal.SIGINT, handler.signal_handler)
 
     # Before estimation started, there are some startup works to do.
@@ -113,10 +129,12 @@ if __name__ == '__main__':
     frame_idx = 0
     skip_frame_count = 0
     num_skip_frames = 0
+    seconds_per_frame = 1.0 / 30.0
+    seconds_per_sample = seconds_per_frame
     if not (args.preview or args.sample_all):
         # My webcam is 30 fps, so this is 2 samples per second
         num_skip_frames = 15
-
+        seconds_per_sample = seconds_per_frame * num_skip_frames
     font_color = (0, 0, 255)
     # font_color = (57, 143, 247)
 
@@ -184,6 +202,9 @@ if __name__ == '__main__':
 
             log["axis"] = axis
             logs.append(log)
+
+            # def update(self, axis, seconds_since_last_frame, frame_idx, log):
+            axis_tracker.update(axis, seconds_per_sample, frame_idx, log)
 
             # playsound(os.path.join(Path.cwd(), "assets", "beep2.wav"))
 
