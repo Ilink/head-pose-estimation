@@ -62,13 +62,29 @@ class SIGINT_handler():
         print('Caught sigint, exiting')
         self.SIGINT = True
 
+class PlaySoundInterval:
+    def __init__(self, interval_seconds, audio_path):
+        self.interval_seconds = interval_seconds
+        self.audio_path = audio_path
+        self.time_since_last = self.interval_seconds
+
+    def update(self, seconds_since_last_frame):
+        self.time_since_last += seconds_since_last_frame
+
+    def play(self):
+        if self.time_since_last >= self.interval_seconds:
+            playsound(self.audio_path)
+            self.time_since_last = 0.0
+
 class AxisTracker():
     def __init__(self, num_seconds_warn):
         self.num_seconds_warn = num_seconds_warn
         self.in_bad_state = False
         self.time_in_bad_state = 0.0
+        self.beeper = PlaySoundInterval(2.0, os.path.join(Path.cwd(), "assets", "beep2.wav"))
 
     def update(self, axis, seconds_since_last_frame, frame_idx, log):
+        self.beeper.update(seconds_since_last_frame)
         if abs(axis[0]) > 0.04:
             self.time_in_bad_state += seconds_since_last_frame
         else:
@@ -78,7 +94,7 @@ class AxisTracker():
         if self.time_in_bad_state >= self.num_seconds_warn:
             log["in_bad_state"] = True
             log["time_in_bad_state"] = self.time_in_bad_state 
-            playsound(os.path.join(Path.cwd(), "assets", "beep2.wav"))
+            self.beeper.play()
 
 if __name__ == '__main__':
     handler = SIGINT_handler()
@@ -129,6 +145,8 @@ if __name__ == '__main__':
     frame_idx = 0
     skip_frame_count = 0
     num_skip_frames = 0
+    # This is kind of a rough estimate since in preview mode it doesnt really
+    # run at the same framerate of the webcam.
     seconds_per_frame = 1.0 / 30.0
     seconds_per_sample = seconds_per_frame
     if not (args.preview or args.sample_all):
