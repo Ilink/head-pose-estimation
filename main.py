@@ -155,9 +155,7 @@ if __name__ == '__main__':
             face_img = frame[y1: y2, x1: x2]
 
             # Run the detection.
-            # tm.start()
             marks = mark_detector.detect_marks(face_img)
-            # tm.stop()
 
             # Convert the locations from local face area to the global image.
             marks *= (x2 - x1)
