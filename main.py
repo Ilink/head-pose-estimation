@@ -104,7 +104,7 @@ if __name__ == '__main__':
     mark_detector = MarkDetector()
 
     # 4. Measure the performance with a tick meter.
-    tm = cv2.TickMeter()
+    # tm = cv2.TickMeter()
 
     # out_video_path = "/mnt/c/Users/ian/Documents/ergonomics/7_17_22/test/temp.mp4"
 
@@ -138,8 +138,8 @@ if __name__ == '__main__':
     # Now, let the frames flow.
     while not handler.SIGINT:
         log = {}
-        if frame_idx == 100:
-            break
+        # if frame_idx == 100:
+        #     break
 
         # Read a frame.
         frame_got, frame = cap.read()
@@ -201,7 +201,7 @@ if __name__ == '__main__':
             log["axis"] = axis
             logs.append(log)
 
-            playsound(os.path.join(Path.cwd(), "assets", "beep2.wav"))
+            # playsound(os.path.join(Path.cwd(), "assets", "beep2.wav"))
 
             # Do you want to see the marks?
             # mark_detector.draw_marks(frame, marks, color=(0, 255, 0))
@@ -211,6 +211,8 @@ if __name__ == '__main__':
 
         if args.preview:
             cv2.imshow("Preview", frame)
+            cv2.waitKey(1)
+
         out_frame_path = os.path.join(frames_out_dir, "frame_%d.png" % frame_idx) 
         cv2.imwrite(out_frame_path, frame)
         out_video.write(cv2.resize(frame, out_size))
