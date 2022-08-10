@@ -103,3 +103,5 @@ ENV/
 video
 *.swp
 *.swo
+
+.DS_Store

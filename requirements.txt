@@ -1,0 +1,7 @@
+opencv-python==4.5.5.64
+opencv-contrib-python
+tensorflow-macos; sys_platform == 'darwin'
+PyObjC; sys_platform == 'darwin'
+tensorflow; sys_platform != 'darwin'
+playsound
+python-dateutil
