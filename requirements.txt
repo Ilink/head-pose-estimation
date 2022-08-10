@@ -1,4 +1,5 @@
-opencv-python==4.5.5.64
+opencv-python==4.5.5.64; sys_platform == 'darwin'
+opencv-python; sys_platform != 'darwin'
 opencv-contrib-python
 tensorflow-macos; sys_platform == 'darwin'
 PyObjC; sys_platform == 'darwin'
