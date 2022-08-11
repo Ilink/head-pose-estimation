@@ -41,6 +41,8 @@ parser.add_argument("--preview", action="store_true", default=False,
                     help="Whether to show a preview. Implies --sample-all")
 parser.add_argument("--sample-all", action="store_true", default=False,
                     help="Whether to sample all frames")
+parser.add_argument("--record", action="store_true", default=True,
+                    help="Whether to record frames and video to disk.")
 args = parser.parse_args()
 
 def normalize_vec3(vec):
@@ -87,8 +89,10 @@ class AxisTracker():
     def update(self, axis, seconds_since_last_frame, frame_idx, log):
         self.beeper.update(seconds_since_last_frame)
         log["time_in_bad_state"] = self.time_in_bad_state
-        if abs(axis[0]) > 0.04:
+        if abs(axis[0]) > 0.1:
+        # if abs(axis[0]) > 0.05:
             self.time_in_bad_state += seconds_since_last_frame
+            self.time_in_bad_state = min(self.num_seconds_warn, self.time_in_bad_state)
         else:
             # One could still be in a bad posture for long periods of time
             # with occasional resets to a good posture. An extreme
@@ -247,9 +251,10 @@ if __name__ == '__main__':
             cv2.imshow("Preview", frame)
             cv2.waitKey(1)
 
-        out_frame_path = os.path.join(frames_out_base_dir, "frame_%d.png" % frame_idx) 
-        cv2.imwrite(out_frame_path, frame)
-        out_video.write(cv2.resize(frame, out_size))
+        if args.record:
+            out_frame_path = os.path.join(frames_out_base_dir, "frame_%d.png" % frame_idx) 
+            cv2.imwrite(out_frame_path, frame)
+            out_video.write(cv2.resize(frame, out_size))
 
         frame_idx += 1
 
