@@ -129,7 +129,7 @@ if __name__ == '__main__':
     timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S") 
     out_dir = os.path.join(out_base_dir, timestamp_str)
     os.mkdir(out_dir)
-    out_video_path = os.path.join(out_dir, timestamp_str + ".mp4")
+    out_video_path = os.path.join(out_dir, "recording.mp4")
     print(out_video_path)
 
     frames_out_base_dir = os.path.join(out_dir, "frames")
@@ -150,7 +150,8 @@ if __name__ == '__main__':
     fps = cap.get(cv2.CAP_PROP_FPS)
     print("fps=%d width=%f height=%f" % (fps, width, height))
     out_size = (int(width), int(height))
-    out_video = cv2.VideoWriter(out_video_path, cv2.VideoWriter_fourcc(*"mp4v"), int(fps), out_size)
+    if args.record:
+        out_video = cv2.VideoWriter(out_video_path, cv2.VideoWriter_fourcc(*"mp4v"), int(fps), out_size)
 
     frame_idx = 0
     skip_frame_count = 0
@@ -258,8 +259,9 @@ if __name__ == '__main__':
 
         frame_idx += 1
 
-    out_video.release()
+    if args.record:
+        out_video.release()
     cap.release()
-    out_log_path = os.path.join(out_dir, timestamp_str + ".json")
+    out_log_path = os.path.join(out_dir, "log.json")
     with open(out_log_path, 'w', encoding='utf-8') as f:
         json.dump(logs, f, ensure_ascii=False, indent=4)
