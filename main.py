@@ -41,7 +41,7 @@ parser.add_argument("--preview", action="store_true", default=False,
                     help="Whether to show a preview. Implies --sample-all")
 parser.add_argument("--sample-all", action="store_true", default=False,
                     help="Whether to sample all frames")
-parser.add_argument("--record", action="store_true", default=True,
+parser.add_argument("--record", action="store_true", default=False,
                     help="Whether to record frames and video to disk.")
 args = parser.parse_args()
 
