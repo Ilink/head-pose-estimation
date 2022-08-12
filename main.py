@@ -221,9 +221,7 @@ if __name__ == '__main__':
             pose_estimator.draw_annotation_box(
                 frame, pose[0], pose[1], color=(0, 255, 0))
 
-            # Do you want to see the head axes?
-            # I dont know why they're stored this way
-            # They're also not normalized, so we'll have to fix that
+            # The first entry is a rotation vector, the second is translation
             axis = [pose[0][0][0], pose[0][1][0], pose[0][2][0]]
             normalize_vec3(axis)
             annotation_str = "axis=%f, %f, %f" % (format_number(axis[0]), format_number(axis[1]), format_number(axis[2]))
