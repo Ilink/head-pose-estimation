@@ -232,13 +232,10 @@ if __name__ == '__main__':
             log["axis"] = axis
             logs.append(log)
 
-            # def update(self, axis, seconds_since_last_frame, frame_idx, log):
             now = time.perf_counter()
             dt = now - prev_time
             prev_time = now
             axis_tracker.update(axis, dt, frame_idx, log)
-
-            # playsound(os.path.join(Path.cwd(), "assets", "beep2.wav"))
 
             # Do you want to see the marks?
             # mark_detector.draw_marks(frame, marks, color=(0, 255, 0))
