@@ -50,12 +50,8 @@ class JsonLogger:
     def __init__(self, out_path):
         self.out_path = out_path
         self.fd = open(self.out_path, 'a', 4096, encoding='utf-8')
-        # self.msgs = []
 
     def log(self, msg_obj):
-        # self.msgs.append(msg_obj)
-        # if self.msgs > 1000
-        # with open(self.out_path, 'a', encoding='utf-8') as f:
         json.dump(msg_obj, self.fd, ensure_ascii=False, indent=4)
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -148,16 +144,6 @@ if __name__ == '__main__':
 
     out_log_path = os.path.join(out_dir, "log.json")
     logger = JsonLogger(out_log_path)
-    # logging.basicConfig(filename=out_log_path)
-    # logger = logging.getLogger()
-    # # logHandler = logging.StreamHandler()
-    # logHandler = logging.FileHandler(out_log_path, 'a')
-    # formatter = jsonlogger.JsonFormatter()
-    # logHandler.setFormatter(formatter)
-    # logger.setLevel(logging.INFO)
-    # logger.addHandler(logHandler)
-
-    logger.log({"message":"bar"})
 
     out_video_path = os.path.join(out_dir, "recording.mp4")
     print(out_video_path)
@@ -286,5 +272,3 @@ if __name__ == '__main__':
     if args.record:
         out_video.release()
     cap.release()
-    # with open(out_log_path, 'w', encoding='utf-8') as f:
-    #     json.dump(logs, f, ensure_ascii=False, indent=4)
