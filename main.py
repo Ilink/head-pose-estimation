@@ -25,6 +25,7 @@ from pathlib import Path
 import json
 import time
 from playsound import playsound
+import sys
 
 print(__doc__)
 print("OpenCV version: {}".format(cv2.__version__))
@@ -44,6 +45,21 @@ parser.add_argument("--sample-all", action="store_true", default=False,
 parser.add_argument("--record", action="store_true", default=False,
                     help="Whether to record frames and video to disk.")
 args = parser.parse_args()
+
+class JsonLogger:
+    def __init__(self, out_path):
+        self.out_path = out_path
+        self.fd = open(self.out_path, 'a', 4096, encoding='utf-8')
+        # self.msgs = []
+
+    def log(self, msg_obj):
+        # self.msgs.append(msg_obj)
+        # if self.msgs > 1000
+        # with open(self.out_path, 'a', encoding='utf-8') as f:
+        json.dump(msg_obj, self.fd, ensure_ascii=False, indent=4)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.fd.close()
 
 def normalize_vec3(vec):
     mag = math.sqrt(vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2])
@@ -108,7 +124,7 @@ class AxisTracker():
 
 if __name__ == '__main__':
     handler = SIGINT_handler()
-    axis_tracker = AxisTracker(10, 2)
+    axis_tracker = AxisTracker(5, 2)
     signal.signal(signal.SIGINT, handler.signal_handler)
 
     # Before estimation started, there are some startup works to do.
@@ -129,6 +145,20 @@ if __name__ == '__main__':
     timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S") 
     out_dir = os.path.join(out_base_dir, timestamp_str)
     os.mkdir(out_dir)
+
+    out_log_path = os.path.join(out_dir, "log.json")
+    logger = JsonLogger(out_log_path)
+    # logging.basicConfig(filename=out_log_path)
+    # logger = logging.getLogger()
+    # # logHandler = logging.StreamHandler()
+    # logHandler = logging.FileHandler(out_log_path, 'a')
+    # formatter = jsonlogger.JsonFormatter()
+    # logHandler.setFormatter(formatter)
+    # logger.setLevel(logging.INFO)
+    # logger.addHandler(logHandler)
+
+    logger.log({"message":"bar"})
+
     out_video_path = os.path.join(out_dir, "recording.mp4")
     print(out_video_path)
 
@@ -162,12 +192,10 @@ if __name__ == '__main__':
     seconds_per_sample = seconds_per_frame
     if not (args.preview or args.sample_all):
         # My webcam is 30 fps, so this is 2 samples per second
-        num_skip_frames = 15
+        num_skip_frames = 5
         seconds_per_sample = seconds_per_frame * num_skip_frames
     font_color = (0, 0, 255)
     # font_color = (57, 143, 247)
-
-    logs = []
 
     prev_time = time.perf_counter()
 
@@ -230,12 +258,13 @@ if __name__ == '__main__':
             cv2.putText(frame, annotation_str, (50, int(height)-20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
 
             log["axis"] = axis
-            logs.append(log)
 
             now = time.perf_counter()
             dt = now - prev_time
             prev_time = now
             axis_tracker.update(axis, dt, frame_idx, log)
+
+            logger.log(log)
 
             # Do you want to see the marks?
             # mark_detector.draw_marks(frame, marks, color=(0, 255, 0))
@@ -257,6 +286,5 @@ if __name__ == '__main__':
     if args.record:
         out_video.release()
     cap.release()
-    out_log_path = os.path.join(out_dir, "log.json")
-    with open(out_log_path, 'w', encoding='utf-8') as f:
-        json.dump(logs, f, ensure_ascii=False, indent=4)
+    # with open(out_log_path, 'w', encoding='utf-8') as f:
+    #     json.dump(logs, f, ensure_ascii=False, indent=4)

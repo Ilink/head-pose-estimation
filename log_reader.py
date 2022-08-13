@@ -12,7 +12,15 @@ head_y_axis_vals = []
 head_z_axis_vals = []
 
 with open(args.file_path) as f:
-    logs = json.load(f)
+    # logs = json.load(f)
+    logs = []
+    for line in f:
+        try:
+            json_line = json.load(line)
+        except ...
+            pass
+        logs.append(json_line)
+
     axis_sum = [0, 0, 0]
     axis_sum_size = 0
     for log in logs:
