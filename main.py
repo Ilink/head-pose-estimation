@@ -149,9 +149,11 @@ def mp_get_forward_vec(landmarks):
     nose = np.array(landmarks["PoseLandmark.NOSE"]["pos"])
     left_mouth = np.array(landmarks["PoseLandmark.MOUTH_LEFT"]["pos"])
     right_mouth = np.array(landmarks["PoseLandmark.MOUTH_RIGHT"]["pos"])
-    nose_to_left_mouth = normalize_numpy(np.subtract(nose, left_mouth))
-    nose_to_right_mouth = normalize_numpy(np.subtract(nose, right_mouth))
-    forward_vec = np.cross(nose_to_left_mouth, nose_to_right_mouth)
+    nose_to_left_mouth = normalize_numpy(np.subtract(left_mouth, nose))
+    # print("nose_to_left_mouth ", nose_to_left_mouth)
+    nose_to_right_mouth = normalize_numpy(np.subtract(right_mouth, nose))
+    # print("nose_to_right_mouth ", nose_to_right_mouth)
+    forward_vec = normalize_numpy(np.cross(nose_to_left_mouth, nose_to_right_mouth))
     return forward_vec
 
 
@@ -304,7 +306,9 @@ with mp.solutions.pose.Pose(
             logger.log(landmarks)
 
             forward_vec = mp_get_forward_vec(landmarks)
-            print(forward_vec)
+
+            annotation_str = "axis=%f, %f, %f" % (format_number(forward_vec[0]), format_number(forward_vec[1]), format_number(forward_vec[2]))
+            cv2.putText(frame, annotation_str, (50, int(height)-20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
 
             # frame = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             mp_drawing.draw_landmarks(
