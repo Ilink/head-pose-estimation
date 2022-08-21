@@ -27,6 +27,7 @@ import time
 from playsound import playsound
 import sys
 import mediapipe as mp
+import numpy as np
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -67,6 +68,9 @@ def normalize_vec3(vec):
     vec[0] = vec[0] / mag
     vec[1] = vec[1] / mag
     vec[2] = vec[2] / mag
+
+def normalize_numpy(vec):
+    return vec / np.sqrt(np.sum(vec**2))
 
 def format_number(num):
     num = num * 1000
@@ -123,34 +127,32 @@ class AxisTracker():
             log["time_in_bad_state"] = self.time_in_bad_state 
             self.beeper.play()
 
-def mp_get_landmarks(image, pose):
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    results = pose.process(image)
+def convert_mp_landmarks(mp_landmarks):
     landmarks = {}
     for pose_enum_val in mp.solutions.pose.PoseLandmark:
-        print(pose_enum_val)
-        landmark = results.pose_landmarks.landmark[pose_enum_val]
+        landmark = mp_landmarks.landmark[pose_enum_val]
         # In my experience, anything less than 0.9 is not actually visible
         # but im just being conservative in case im wrong.
         if landmark.visibility > 0.1:
             landmarks[str(pose_enum_val)] = {
-                "x": landmark.x,
-                "y": landmark.y,
-                "z": landmark.z,
+                "pos": [landmark.x, landmark.y, landmark.z],
                 "visibility": landmark.visibility
             }
-
-        # landmarks.append(landmark)
-    # for landmark in results.pose_landmarks:
-    #     landmark = {
-    #         "x": landmark.x,
-    #         "y": landmark.y,
-    #         "z": landmark.z,
-    #         "visibility": landmark.visibility
-    #     }
-    #     landmarks.append(landmark)
-
     return landmarks
+
+def mp_get_landmarks(image, pose):
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    results = pose.process(image)
+    return results
+
+def mp_get_forward_vec(landmarks):
+    nose = np.array(landmarks["PoseLandmark.NOSE"]["pos"])
+    left_mouth = np.array(landmarks["PoseLandmark.MOUTH_LEFT"]["pos"])
+    right_mouth = np.array(landmarks["PoseLandmark.MOUTH_RIGHT"]["pos"])
+    nose_to_left_mouth = normalize_numpy(np.subtract(nose, left_mouth))
+    nose_to_right_mouth = normalize_numpy(np.subtract(nose, right_mouth))
+    forward_vec = np.cross(nose_to_left_mouth, nose_to_right_mouth)
+    return forward_vec
 
 
 handler = SIGINT_handler()
@@ -197,6 +199,56 @@ pose_estimator = PoseEstimator(img_size=(height, width))
 # 3. Introduce a mark detector to detect landmarks.
 mark_detector = MarkDetector()
 
+def run_pose_estimator(frame):
+    # Step 1: Get a face from current frame.
+    facebox = mark_detector.extract_cnn_facebox(frame)
+
+    # Any face found?
+    if facebox is not None:
+        # Step 2: Detect landmarks. Crop and feed the face area into the
+        # mark detector.
+        x1, y1, x2, y2 = facebox
+        face_img = frame[y1: y2, x1: x2]
+
+        # Run the detection.
+        marks = mark_detector.detect_marks(face_img)
+
+        # Convert the locations from local face area to the global image.
+        marks *= (x2 - x1)
+        marks[:, 0] += x1
+        marks[:, 1] += y1
+
+        # Try pose estimation with 68 points.
+        pose = pose_estimator.solve_pose_by_68_points(marks)
+
+        # All done. The best way to show the result would be drawing the
+        # pose on the frame in realtime.
+
+        # Do you want to see the pose annotation?
+        pose_estimator.draw_annotation_box(
+            frame, pose[0], pose[1], color=(0, 255, 0))
+
+        # The first entry is a rotation vector, the second is translation
+        axis = [pose[0][0][0], pose[0][1][0], pose[0][2][0]]
+        normalize_vec3(axis)
+        annotation_str = "axis=%f, %f, %f" % (format_number(axis[0]), format_number(axis[1]), format_number(axis[2]))
+        pose_estimator.draw_axes(frame, pose[0], pose[1])
+
+        cv2.putText(frame, annotation_str, (50, int(height)-20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
+
+        log["axis"] = axis
+
+        now = time.perf_counter()
+        dt = now - prev_time
+        prev_time = now
+        axis_tracker.update(axis, dt, frame_idx, log)
+
+        logger.log(log)
+
+        # mark_detector.draw_marks(frame, marks, color=(0, 255, 0))
+        # mark_detector.draw_box(frame, [facebox])
+
+
 fps = cap.get(cv2.CAP_PROP_FPS)
 print("fps=%d width=%f height=%f" % (fps, width, height))
 out_size = (int(width), int(height))
@@ -221,7 +273,8 @@ prev_time = time.perf_counter()
 
 with mp.solutions.pose.Pose(
     min_detection_confidence=0.5,
-    min_tracking_confidence=0.5) as mp_pose:
+    min_tracking_confidence=0.5,
+    model_complexity=2) as mp_pose:
 
     while not handler.SIGINT:
         log = {}
@@ -243,61 +296,22 @@ with mp.solutions.pose.Pose(
         if video_src == 0:
             frame = cv2.flip(frame, 2)
 
-        # Step 1: Get a face from current frame.
-        facebox = mark_detector.extract_cnn_facebox(frame)
+        # run_pose_estimator(frame)
 
-        # Any face found?
-        if facebox is not None:
+        mp_results = mp_get_landmarks(frame, mp_pose)
+        if mp_results.pose_landmarks is not None:
+            landmarks = convert_mp_landmarks(mp_results.pose_landmarks)
+            logger.log(landmarks)
 
-            # Step 2: Detect landmarks. Crop and feed the face area into the
-            # mark detector.
-            x1, y1, x2, y2 = facebox
-            face_img = frame[y1: y2, x1: x2]
+            forward_vec = mp_get_forward_vec(landmarks)
+            print(forward_vec)
 
-            # Run the detection.
-            marks = mark_detector.detect_marks(face_img)
-
-            # Convert the locations from local face area to the global image.
-            marks *= (x2 - x1)
-            marks[:, 0] += x1
-            marks[:, 1] += y1
-
-            # Try pose estimation with 68 points.
-            pose = pose_estimator.solve_pose_by_68_points(marks)
-
-            # All done. The best way to show the result would be drawing the
-            # pose on the frame in realtime.
-
-            # Do you want to see the pose annotation?
-            pose_estimator.draw_annotation_box(
-                frame, pose[0], pose[1], color=(0, 255, 0))
-
-            # The first entry is a rotation vector, the second is translation
-            axis = [pose[0][0][0], pose[0][1][0], pose[0][2][0]]
-            normalize_vec3(axis)
-            annotation_str = "axis=%f, %f, %f" % (format_number(axis[0]), format_number(axis[1]), format_number(axis[2]))
-            pose_estimator.draw_axes(frame, pose[0], pose[1])
-
-            cv2.putText(frame, annotation_str, (50, int(height)-20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
-
-            log["axis"] = axis
-
-            now = time.perf_counter()
-            dt = now - prev_time
-            prev_time = now
-            axis_tracker.update(axis, dt, frame_idx, log)
-
-            logger.log(log)
-
-            # Do you want to see the marks?
-            # mark_detector.draw_marks(frame, marks, color=(0, 255, 0))
-
-            # Do you want to see the facebox?
-            # mark_detector.draw_box(frame, [facebox])
-
-        landmarks = mp_get_landmarks(frame, mp_pose)
-        logger.log(landmarks)
-        break
+            # frame = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            mp_drawing.draw_landmarks(
+                frame,
+                mp_results.pose_landmarks,
+                mp.solutions.pose.POSE_CONNECTIONS,
+                landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
 
         if args.preview:
             cv2.imshow("Preview", frame)
