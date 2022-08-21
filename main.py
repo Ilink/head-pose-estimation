@@ -126,7 +126,31 @@ class AxisTracker():
 def mp_get_landmarks(image, pose):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     results = pose.process(image)
-    return results
+    landmarks = {}
+    for pose_enum_val in mp.solutions.pose.PoseLandmark:
+        print(pose_enum_val)
+        landmark = results.pose_landmarks.landmark[pose_enum_val]
+        # In my experience, anything less than 0.9 is not actually visible
+        # but im just being conservative in case im wrong.
+        if landmark.visibility > 0.1:
+            landmarks[str(pose_enum_val)] = {
+                "x": landmark.x,
+                "y": landmark.y,
+                "z": landmark.z,
+                "visibility": landmark.visibility
+            }
+
+        # landmarks.append(landmark)
+    # for landmark in results.pose_landmarks:
+    #     landmark = {
+    #         "x": landmark.x,
+    #         "y": landmark.y,
+    #         "z": landmark.z,
+    #         "visibility": landmark.visibility
+    #     }
+    #     landmarks.append(landmark)
+
+    return landmarks
 
 
 handler = SIGINT_handler()
@@ -271,14 +295,9 @@ with mp.solutions.pose.Pose(
             # Do you want to see the facebox?
             # mark_detector.draw_box(frame, [facebox])
 
-        mp_results = mp_get_landmarks(frame, mp_pose)
-        print(mp_results.pose_landmarks)
-        # for res in mp_results:
-        #     print(res)
+        landmarks = mp_get_landmarks(frame, mp_pose)
+        logger.log(landmarks)
         break
-        # logger.log(mp_results)
-        # for res in mp_results:
-        #     print(res)
 
         if args.preview:
             cv2.imshow("Preview", frame)
