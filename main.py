@@ -26,6 +26,10 @@ import json
 import time
 from playsound import playsound
 import sys
+import mediapipe as mp
+
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
 
 print(__doc__)
 print("OpenCV version: {}".format(cv2.__version__))
@@ -52,7 +56,8 @@ class JsonLogger:
         self.fd = open(self.out_path, 'a', 4096, encoding='utf-8')
 
     def log(self, msg_obj):
-        json.dump(msg_obj, self.fd, ensure_ascii=False, indent=4)
+        json.dump(msg_obj, self.fd, ensure_ascii=False)
+        self.fd.write("\n")
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.fd.close()
@@ -118,74 +123,82 @@ class AxisTracker():
             log["time_in_bad_state"] = self.time_in_bad_state 
             self.beeper.play()
 
-if __name__ == '__main__':
-    handler = SIGINT_handler()
-    axis_tracker = AxisTracker(5, 2)
-    signal.signal(signal.SIGINT, handler.signal_handler)
+def mp_get_landmarks(image, pose):
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    results = pose.process(image)
+    return results
 
-    # Before estimation started, there are some startup works to do.
 
-    # 1. Setup the video source from webcam or video file.
-    video_src = args.cam if args.cam is not None else args.video
-    if video_src is None:
-        print("Video source not assigned, default webcam will be used.")
-        video_src = 0
+handler = SIGINT_handler()
+axis_tracker = AxisTracker(5, 2)
+signal.signal(signal.SIGINT, handler.signal_handler)
 
-    out_base_dir = args.outdir
-    if out_base_dir is None:
-        out_base_dir = os.path.join(Path.cwd(), "video")
-        if not os.path.isdir(out_base_dir):
-            os.mkdir(out_base_dir)
+# Before estimation started, there are some startup works to do.
 
-    now = datetime.datetime.now(tzlocal())
-    timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S") 
-    out_dir = os.path.join(out_base_dir, timestamp_str)
-    os.mkdir(out_dir)
+# 1. Setup the video source from webcam or video file.
+video_src = args.cam if args.cam is not None else args.video
+if video_src is None:
+    print("Video source not assigned, default webcam will be used.")
+    video_src = 0
 
-    out_log_path = os.path.join(out_dir, "log.json")
-    logger = JsonLogger(out_log_path)
+out_base_dir = args.outdir
+if out_base_dir is None:
+    out_base_dir = os.path.join(Path.cwd(), "video")
+    if not os.path.isdir(out_base_dir):
+        os.mkdir(out_base_dir)
 
-    out_video_path = os.path.join(out_dir, "recording.mp4")
-    print(out_video_path)
+now = datetime.datetime.now(tzlocal())
+timestamp_str = now.strftime("%Y-%m-%d_%H-%M-%S") 
+out_dir = os.path.join(out_base_dir, timestamp_str)
+os.mkdir(out_dir)
 
-    frames_out_base_dir = os.path.join(out_dir, "frames")
-    os.mkdir(frames_out_base_dir)
+out_log_path = os.path.join(out_dir, "log.json")
+logger = JsonLogger(out_log_path)
 
-    cap = cv2.VideoCapture(video_src)
+out_video_path = os.path.join(out_dir, "recording.mp4")
+print(out_video_path)
 
-    # Get the frame size. This will be used by the pose estimator.
-    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+frames_out_base_dir = os.path.join(out_dir, "frames")
+os.mkdir(frames_out_base_dir)
 
-    # 2. Introduce a pose estimator to solve pose.
-    pose_estimator = PoseEstimator(img_size=(height, width))
+cap = cv2.VideoCapture(video_src)
 
-    # 3. Introduce a mark detector to detect landmarks.
-    mark_detector = MarkDetector()
+# Get the frame size. This will be used by the pose estimator.
+width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    print("fps=%d width=%f height=%f" % (fps, width, height))
-    out_size = (int(width), int(height))
-    if args.record:
-        out_video = cv2.VideoWriter(out_video_path, cv2.VideoWriter_fourcc(*"mp4v"), int(fps), out_size)
+# 2. Introduce a pose estimator to solve pose.
+pose_estimator = PoseEstimator(img_size=(height, width))
 
-    frame_idx = 0
-    skip_frame_count = 0
-    num_skip_frames = 0
-    # This is kind of a rough estimate since in preview mode it doesnt really
-    # run at the same framerate of the webcam.
-    seconds_per_frame = 1.0 / 30.0
-    seconds_per_sample = seconds_per_frame
-    if not (args.preview or args.sample_all):
-        # My webcam is 30 fps, so this is 2 samples per second
-        num_skip_frames = 5
-        seconds_per_sample = seconds_per_frame * num_skip_frames
-    font_color = (0, 0, 255)
-    # font_color = (57, 143, 247)
+# 3. Introduce a mark detector to detect landmarks.
+mark_detector = MarkDetector()
 
-    prev_time = time.perf_counter()
+fps = cap.get(cv2.CAP_PROP_FPS)
+print("fps=%d width=%f height=%f" % (fps, width, height))
+out_size = (int(width), int(height))
+if args.record:
+    out_video = cv2.VideoWriter(out_video_path, cv2.VideoWriter_fourcc(*"mp4v"), int(fps), out_size)
 
-    # Now, let the frames flow.
+frame_idx = 0
+skip_frame_count = 0
+num_skip_frames = 0
+# This is kind of a rough estimate since in preview mode it doesnt really
+# run at the same framerate of the webcam.
+seconds_per_frame = 1.0 / 30.0
+seconds_per_sample = seconds_per_frame
+if not (args.preview or args.sample_all):
+    # My webcam is 30 fps, so this is 2 samples per second
+    num_skip_frames = 5
+    seconds_per_sample = seconds_per_frame * num_skip_frames
+font_color = (0, 0, 255)
+# font_color = (57, 143, 247)
+
+prev_time = time.perf_counter()
+
+with mp.solutions.pose.Pose(
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5) as mp_pose:
+
     while not handler.SIGINT:
         log = {}
         # if frame_idx == 100:
@@ -258,13 +271,22 @@ if __name__ == '__main__':
             # Do you want to see the facebox?
             # mark_detector.draw_box(frame, [facebox])
 
+        mp_results = mp_get_landmarks(frame, mp_pose)
+        print(mp_results.pose_landmarks)
+        # for res in mp_results:
+        #     print(res)
+        break
+        # logger.log(mp_results)
+        # for res in mp_results:
+        #     print(res)
+
         if args.preview:
             cv2.imshow("Preview", frame)
             cv2.waitKey(1)
 
         if args.record:
-            out_frame_path = os.path.join(frames_out_base_dir, "frame_%d.png" % frame_idx) 
-            cv2.imwrite(out_frame_path, frame)
+            # out_frame_path = os.path.join(frames_out_base_dir, "frame_%d.png" % frame_idx) 
+            # cv2.imwrite(out_frame_path, frame)
             out_video.write(cv2.resize(frame, out_size))
 
         frame_idx += 1

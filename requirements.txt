@@ -6,3 +6,4 @@ PyObjC; sys_platform == 'darwin'
 tensorflow; sys_platform != 'darwin'
 playsound
 python-dateutil
+mediapipe
