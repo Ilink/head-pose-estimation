@@ -148,13 +148,21 @@ def mp_get_landmarks(image, pose):
 def mp_get_forward_vec(landmarks):
     nose = np.array(landmarks["PoseLandmark.NOSE"]["pos"])
     left_mouth = np.array(landmarks["PoseLandmark.MOUTH_LEFT"]["pos"])
+    # left_mouth[2] = nose[2]
     right_mouth = np.array(landmarks["PoseLandmark.MOUTH_RIGHT"]["pos"])
+    # right_mouth[2] = nose[2]
     nose_to_left_mouth = normalize_numpy(np.subtract(left_mouth, nose))
     # print("nose_to_left_mouth ", nose_to_left_mouth)
     nose_to_right_mouth = normalize_numpy(np.subtract(right_mouth, nose))
     # print("nose_to_right_mouth ", nose_to_right_mouth)
     forward_vec = normalize_numpy(np.cross(nose_to_left_mouth, nose_to_right_mouth))
-    return forward_vec
+    forward_vec[2] = -1.0;
+    forward_vec = normalize_numpy(forward_vec)
+
+    mouth_vec = normalize_numpy(np.subtract(left_mouth, right_mouth)) 
+
+    # return forward_vec
+    return mouth_vec 
 
 
 handler = SIGINT_handler()
@@ -270,6 +278,20 @@ if not (args.preview or args.sample_all):
     seconds_per_sample = seconds_per_frame * num_skip_frames
 font_color = (0, 0, 255)
 # font_color = (57, 143, 247)
+
+
+
+
+# focal_length = width
+# camera_center = (height / 2.0, width / 2.0)
+# camera_matrix = np.array(
+#     [[focal_length, 0, camera_center[0]],
+#      [0, focal_length, camera_center[1]],
+#      [0, 0, 1]], dtype="double")
+# dist_coeefs = np.zeros((4, 1))
+
+
+
 
 prev_time = time.perf_counter()
 
