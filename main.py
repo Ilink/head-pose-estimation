@@ -148,7 +148,7 @@ def mp_get_landmarks(image, pose):
 def mp_valid_landmarks(landmarks):
     return "PoseLandmark.NOSE" in landmarks and \
         "PoseLandmark.MOUTH_LEFT" in landmarks and \
-        "PoseLandmark.MOUTH_RIGHT" in landmarks:
+        "PoseLandmark.MOUTH_RIGHT" in landmarks
 
 def mp_get_forward_vec(landmarks):
     nose = np.array(landmarks["PoseLandmark.NOSE"]["pos"])
