@@ -169,6 +169,11 @@ def mp_get_forward_vec(landmarks):
     # return forward_vec
     return mouth_vec 
 
+def mp_handle_mouth(landmarks):
+    left_mouth = np.array(landmarks["PoseLandmark.MOUTH_LEFT"]["pos"])
+    right_mouth = np.array(landmarks["PoseLandmark.MOUTH_RIGHT"]["pos"])
+    return np.subtract(left_mouth, right_mouth)
+
 
 handler = SIGINT_handler()
 axis_tracker = AxisTracker(5, 2)
@@ -328,13 +333,20 @@ with mp.solutions.pose.Pose(
         # run_pose_estimator(frame)
 
         mp_results = mp_get_landmarks(frame, mp_pose)
-        if mp_results.pose_landmarks is not None and mp_valid_landmarks(mp_results.pose_landmarks):
+        if mp_results.pose_landmarks is not None:
             landmarks = convert_mp_landmarks(mp_results.pose_landmarks)
+            if not mp_valid_landmarks(landmarks):
+                continue
+
             logger.log(landmarks)
 
             forward_vec = mp_get_forward_vec(landmarks)
+            mouth_diff = mp_handle_mouth(landmarks)
+            
+            # display_vec = forward_vec
+            display_vec = mouth_diff
 
-            annotation_str = "axis=%f, %f, %f" % (format_number(forward_vec[0]), format_number(forward_vec[1]), format_number(forward_vec[2]))
+            annotation_str = "axis=%f, %f, %f" % (format_number(display_vec[0]), format_number(display_vec[1]), format_number(display_vec[2]))
             cv2.putText(frame, annotation_str, (50, int(height)-20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
 
             # frame = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
