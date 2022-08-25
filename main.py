@@ -145,12 +145,12 @@ def mp_get_landmarks(image, pose):
     results = pose.process(image)
     return results
 
-def mp_get_forward_vec(landmarks):
-    if "PoseLandmark.NOSE" not in landmarks or \
-        "PoseLandmark.MOUTH_LEFT" not in landmarks or \
-        "PoseLandmark.MOUTH_RIGHT" not in landmarks:
-        return np.array([0,0,0])
+def mp_valid_landmarks(landmarks):
+    return "PoseLandmark.NOSE" in landmarks and \
+        "PoseLandmark.MOUTH_LEFT" in landmarks and \
+        "PoseLandmark.MOUTH_RIGHT" in landmarks:
 
+def mp_get_forward_vec(landmarks):
     nose = np.array(landmarks["PoseLandmark.NOSE"]["pos"])
     left_mouth = np.array(landmarks["PoseLandmark.MOUTH_LEFT"]["pos"])
     # left_mouth[2] = nose[2]
@@ -328,7 +328,7 @@ with mp.solutions.pose.Pose(
         # run_pose_estimator(frame)
 
         mp_results = mp_get_landmarks(frame, mp_pose)
-        if mp_results.pose_landmarks is not None:
+        if mp_results.pose_landmarks is not None and mp_valid_landmarks(mp_results.pose_landmarks):
             landmarks = convert_mp_landmarks(mp_results.pose_landmarks)
             logger.log(landmarks)
 
