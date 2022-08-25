@@ -146,6 +146,11 @@ def mp_get_landmarks(image, pose):
     return results
 
 def mp_get_forward_vec(landmarks):
+    if "PoseLandmark.NOSE" not in landmarks or \
+        "PoseLandmark.MOUTH_LEFT" not in landmarks or \
+        "PoseLandmark.MOUTH_RIGHT" not in landmarks:
+        return np.array([0,0,0])
+
     nose = np.array(landmarks["PoseLandmark.NOSE"]["pos"])
     left_mouth = np.array(landmarks["PoseLandmark.MOUTH_LEFT"]["pos"])
     # left_mouth[2] = nose[2]
