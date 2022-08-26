@@ -338,16 +338,32 @@ with mp.solutions.pose.Pose(
             if not mp_valid_landmarks(landmarks):
                 continue
 
-            logger.log(landmarks)
+            # logger.log(landmarks)
 
-            forward_vec = mp_get_forward_vec(landmarks)
-            mouth_diff = mp_handle_mouth(landmarks)
+            # forward_vec = mp_get_forward_vec(landmarks)
+            # mouth_diff = mp_handle_mouth(landmarks)
             
             # display_vec = forward_vec
-            display_vec = mouth_diff
+            # display_vec = mouth_diff
 
-            annotation_str = "axis=%f, %f, %f" % (format_number(display_vec[0]), format_number(display_vec[1]), format_number(display_vec[2]))
-            cv2.putText(frame, annotation_str, (50, int(height)-20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
+            if "PoseLandmark.LEFT_SHOULDER" in landmarks and "PoseLandmark.NOSE":
+                shoulder = landmarks["PoseLandmark.LEFT_SHOULDER"]["pos"]
+                nose = landmarks["PoseLandmark.NOSE"]["pos"]
+                head_forward_diff = nose[0] - shoulder[0]
+                logger.log({"head_forward_diff": head_forward_diff})
+                annotation_str = "head_forward_diff=%f" % (head_forward_diff)
+                cv2.putText(frame, annotation_str, (50, int(height)-20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
+
+            
+            # if "PoseLandmark.LEFT_SHOULDER" in landmarks:
+            #     shoulder = landmarks["PoseLandmark.LEFT_SHOULDER"]["pos"]
+            #     annotation_str = "shoulder=%f, %f, %f" % (format_number(shoulder[0]), format_number(shoulder[1]), format_number(shoulder[2]))
+            #     cv2.putText(frame, annotation_str, (50, int(height)-40), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
+            # 
+            # if "PoseLandmark.NOSE" in landmarks:
+            #     nose = landmarks["PoseLandmark.NOSE"]["pos"]
+            #     annotation_str = "nose=%f, %f, %f" % (format_number(nose[0]), format_number(nose[1]), format_number(nose[2]))
+            #     cv2.putText(frame, annotation_str, (50, int(height)-20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
 
             # frame = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             mp_drawing.draw_landmarks(
