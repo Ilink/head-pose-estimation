@@ -338,7 +338,7 @@ with mp.solutions.pose.Pose(
             if not mp_valid_landmarks(landmarks):
                 continue
 
-            # logger.log(landmarks)
+            logger.log(landmarks)
 
             # forward_vec = mp_get_forward_vec(landmarks)
             # mouth_diff = mp_handle_mouth(landmarks)
@@ -352,6 +352,14 @@ with mp.solutions.pose.Pose(
                 head_forward_diff = nose[0] - shoulder[0]
                 logger.log({"head_forward_diff": head_forward_diff})
                 annotation_str = "head_forward_diff=%f" % (head_forward_diff)
+                cv2.putText(frame, annotation_str, (50, int(height)-40), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
+
+            if "PoseLandmark.LEFT_SHOULDER" in landmarks and "PoseLandmark.LEFT_HIP":
+                shoulder = landmarks["PoseLandmark.LEFT_SHOULDER"]["pos"]
+                hip = landmarks["PoseLandmark.LEFT_HIP"]["pos"]
+                back_diff = shoulder[0] - hip[0]
+                logger.log({"back_diff": back_diff})
+                annotation_str = "back_diff=%f" % (back_diff)
                 cv2.putText(frame, annotation_str, (50, int(height)-20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, font_color, 2, cv2.LINE_AA)
 
             

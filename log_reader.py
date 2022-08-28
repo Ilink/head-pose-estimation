@@ -26,7 +26,21 @@ with open(args.file_path) as f:
 
     axis_sum = [0, 0, 0]
     axis_sum_size = 0
+    head_forward_diff_sum = 0
+    head_forward_diff_sum_size = 0
+    back_diff_sum = 0
+    back_diff_sum_size = 0
+
     for log in logs:
+        if "head_forward_diff" in log:
+            head_forward_diff_sum += log["head_forward_diff"]
+            head_forward_diff_sum_size += 1
+
+        if "PoseLandmark.LEFT_HIP" in log and "PoseLandmark.LEFT_SHOULDER" in log:
+            diff = log["PoseLandmark.LEFT_SHOULDER"]["pos"][0] - log["PoseLandmark.LEFT_HIP"]["pos"][0]
+            back_diff_sum += diff
+            back_diff_sum_size += 1
+
         if "axis" in log:
             axis = log["axis"]
             axis_sum[0] += axis[0]
@@ -41,12 +55,21 @@ with open(args.file_path) as f:
             time_in_bad_state_vals.append(log["time_in_bad_state"])
 
     axis_avg = [0, 0, 0]
-    axis_avg[0] = axis_sum[0] / axis_sum_size
-    axis_avg[1] = axis_sum[1] / axis_sum_size
-    axis_avg[2] = axis_sum[2] / axis_sum_size
+    if axis_sum_size > 0:
+        axis_avg[0] = axis_sum[0] / axis_sum_size
+        axis_avg[1] = axis_sum[1] / axis_sum_size
+        axis_avg[2] = axis_sum[2] / axis_sum_size
+        print(axis_avg)
+
+    if head_forward_diff_sum_size > 0:
+        head_forward_diff_avg = head_forward_diff_sum / head_forward_diff_sum_size 
+        print("head_forward_diff_avg=", head_forward_diff_avg)
+
+    if back_diff_sum_size > 0:
+        back_diff_avg = back_diff_sum / back_diff_sum_size 
+        print("back_diff_avg=", back_diff_avg)
 
 
-    print(axis_avg)
 
 
 # plt.plot(time_in_bad_state_vals, label='time in bad state')
